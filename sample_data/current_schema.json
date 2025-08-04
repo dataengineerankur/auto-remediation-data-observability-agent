@@ -1,0 +1,5 @@
+{
+  "id": "int",
+  "age": "float",
+  "email": "string"
+}
