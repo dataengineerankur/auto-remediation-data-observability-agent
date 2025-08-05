@@ -1,40 +1,50 @@
 # Auto-Remediation Data Observability Agent
 
-This repository contains a proof-of-concept agent that monitors for data pipeline / schema drift issues and automatically suggests remediation actions. It demonstrates how an AI agent can detect added, removed or type-changed columns and generate guidance for updating ETL scripts.
+This project implements an **auto‑remediation agent** that monitors your data pipelines for schema drift and uses generative AI to suggest code changes to your ETL scripts. It’s built with [LangChain](https://python.langchain.com) and Groq’s Llama3 model.
 
-## Usage
+## Prerequisites
 
-1. Clone this repository and install the (minimal) dependencies:
+* Python 3.8+
+* Install dependencies:
 
-   ```bash
-   git clone https://github.com/dataengineerankur/auto-remediation-data-observability-agent.git
-   cd auto-remediation-data-observability-agent
-   pip install -r requirements.txt
-   ```
+```bash
+pip install -r requirements.txt
+```
 
-2. Run the agent script against the example schema drift:
+* Set the `GROQ_API_KEY` environment variable with your Groq API key. You can export it in your shell or put it in a `.env` file.
 
-   ```bash
-   python run_agent.py
-   ```
+## Running the agent
 
-   You should see output similar to:
+The agent compares any two JSON schema snapshots and uses an LLM to propose updates to your transformation script.
 
-   ```
-   Remediation recommendations:
-   - age: Cast or convert column 'age' to the new type 'float' in the transformation script.
-   - email: Consider adding handling for new column 'email' in the transformation script.
-   - name: Remove references to column 'name' from the transformation script.
-   ```
+```bash
+python run_agent.py     --previous-schema path/to/previous_schema.json     --current-schema  path/to/current_schema.json     --script          path/to/transform.py
+```
 
-3. To experiment with your own schemas, place your last known good schema in `sample_data/previous_schema.json` and the new schema in `sample_data/current_schema.json`, adjust `scripts/transform.py` to represent your transformation logic, and run the agent again.
+If you omit the arguments, the script defaults to the samples in `sample_data/` and `scripts/transform.py`.
 
-## Contents
+The agent detects added, removed and type‑changed columns and calls the LLM to generate remediation suggestions. The results are printed as JSON mapping column names to suggested code changes.
 
-- **auto_remediation_agent/** – package containing the agent, detector and remediator classes.
-- **sample_data/** – example JSON schema snapshots used for the demo (`previous_schema.json` and `current_schema.json`).
-- **scripts/transform.py** – a simple transformation script referenced by the demo.
-- **run_agent.py** – entry point that wires everything together and prints remediation suggestions.
-- **requirements.txt** – Python dependencies (very minimal).
+### Example
 
-This project is a starting point; in a production system the remediation suggestions would be applied automatically via pull requests or integration with your orchestration platform.
+```bash
+export GROQ_API_KEY=YOUR_API_KEY
+python run_agent.py
+```
+
+This produces output similar to:
+
+```text
+{"age": "...", "email": "...", "name": "..."}
+```
+
+Below is a screenshot of the agent running against the sample schemas:
+
+![Auto remediation output](data:image/jpeg;base64,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)
+
+## Project structure
+
+* `auto_remediation_agent/` – Python package containing the agent, detector, remediator and LLM helpers.
+* `sample_data/` – Sample JSON schema snapshots used by the demo (`previous_schema.json` and `current_schema.json`). Replace these with your own schemas.
+* `scripts/transform.py` – Example transformation script referenced by the demo.
+* `run_agent.py` – CLI script that wires everything together and prints remediation suggestions.
